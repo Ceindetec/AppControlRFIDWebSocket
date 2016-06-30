@@ -2,15 +2,35 @@ var http = require("http");
 var ws = require("nodejs-websocket");
 var fs = require("fs");
 var mysql = require('mysql');
+var express = require('express');
+
 
 var encrypt = require('./encrypt.js');
 var desencrypt = require('./desencrypt.js');
 
 require('date-utils');
 
-http.createServer(function (req, res) {
-	//fs.createReadStream("index.html").pipe(res)
-}).listen(8084);
+var app = express();
+app.set('port', process.env.PORT || 3000);
+
+http.createServer(app).listen(app.get('port'), function(){
+  console.log('Express server listening on port ' + app.get('port'));
+});
+
+
+var options = {
+  host: 'localhost',
+  port: 8080,
+  path: '/GestionReportes_0.1/services/GestionReportes?method=runJob'
+};
+
+http.get(options, function(resp){
+  resp.on('data', function(chunk){
+    console.log("data");
+  });
+}).on("error", function(e){
+  console.log("Got error: " + e.message);
+});
 
 
 var connectionmysql;
@@ -19,6 +39,10 @@ var connectionmysql;
 var existe=false;
 
 var server = ws.createServer(function (connection) {
+	
+	
+	
+	
 	
 	
 	
@@ -172,14 +196,15 @@ function actualizar_modulo(modulo){
 			var resultado = result;
 			var array = [];
 			var dataactu = {};
-			if(resultado.length > 0){
+			if(resultado[0].length > 0){
 				dataactu.dispositivo = "PC";
 				dataactu.accion = "UPD";
-				for(i=0;i<result.length;i++){
+				for(i=0;i<result[0].length;i++){
 					array.push(result[0][i].func_tarjeta);
 				}
 				dataactu.data = array;
-				dataactu.total = resultado.length;
+				dataactu.total = resultado[0].length;
+				console.log(JSON.stringify(dataactu));
 				broadcast(encrypt.encrypt(JSON.stringify(dataactu)), modulo);
 				}else{
 				console.log('[MASTER] Registro no encontrado');
@@ -197,8 +222,11 @@ function actualizar_modulo(modulo){
 function registraringreso(modulorf, tarjeta){
 	
 	
-	if(tarjeta.length == 7){
-		tarjeta = "0"+tarjeta;
+	if(tarjeta.length < 8){
+		var cuanto = 8-tarjeta.length;
+		for(i=0;i<cuanto;i++){
+			tarjeta = "0"+tarjeta;
+		}
 	}
 	
 	connectionmysql.connect(function(error){
@@ -229,9 +257,11 @@ function registraringreso(modulorf, tarjeta){
 
 function confirmarinvitado(modulorf, tarjeta){
 	
-	
-	if(tarjeta.length == 7){
-		tarjeta = "0"+tarjeta;
+	if(tarjeta.length < 8){
+		var cuanto = 8-tarjeta.length;
+		for(i=0;i<cuanto;i++){
+			tarjeta = "0"+tarjeta;
+		}
 	}
 	
 	connectionmysql.connect(function(error){

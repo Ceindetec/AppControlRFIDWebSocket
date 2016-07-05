@@ -39,13 +39,7 @@ var connectionmysql;
 var existe=false;
 
 var server = ws.createServer(function (connection) {
-	
-	
-	
-	
-	
-	
-	
+
 	console.log("[MASTER] NUEVA CONEXIÓN");
 	connection.nickname = null
 	console.log("[MASTER] NUMERO DE CONEXIONES " + server.connections.length);
@@ -204,7 +198,6 @@ function actualizar_modulo(modulo){
 				}
 				dataactu.data = array;
 				dataactu.total = resultado[0].length;
-				console.log(JSON.stringify(dataactu));
 				broadcast(encrypt.encrypt(JSON.stringify(dataactu)), modulo);
 				}else{
 				console.log('[MASTER] Registro no encontrado');

@@ -2,7 +2,7 @@ var http = require("http");
 var ws = require("nodejs-websocket");
 var fs = require("fs");
 var mysql = require('mysql');
-var express = require('express');
+
 
 
 var encrypt = require('./encrypt.js');
@@ -10,12 +10,9 @@ var desencrypt = require('./desencrypt.js');
 
 require('date-utils');
 
-var app = express();
-app.set('port', process.env.PORT || 3000);
-
-http.createServer(app).listen(app.get('port'), function(){
-  console.log('Express server listening on port ' + app.get('port'));
-});
+http.createServer(function (req, res) {
+	fs.createReadStream("index.html").pipe(res)
+}).listen(8085)
 
 
 var options = {
@@ -37,8 +34,13 @@ var connectionmysql;
 
 
 var existe=false;
+var serve=null;
+var iniciado = false;
 
-var server = ws.createServer(function (connection) {
+
+var rutina;
+	
+	server = ws.createServer(function (connection) {
 
 	console.log("[MASTER] NUEVA CONEXIÓN");
 	connection.nickname = null
@@ -55,11 +57,6 @@ var server = ws.createServer(function (connection) {
 	connection.on("text", function (str1) {
 		console.log("[MASTER] MENSAJE RECIBIDO "+str1);
 		
-		// console.log("[MASTER] MENSAJE RECIBIDO ENCRIPTADO "+encrypt.encrypt("{\"sensor\":\"gps\",\"time\":1351824120,\"data\":[48.756080,2.302038]}"));
-		
-		// console.log("[MASTER] MENSAJE RECIBIDO DESENCRIPTADO "+desencrypt.desencrypt(str1));
-		
-		
 		str = desencrypt.desencrypt(str1);
 		if(str!="ERROR"){
 			if(connection.permiso){
@@ -71,16 +68,11 @@ var server = ws.createServer(function (connection) {
 								console.log("[MASTER] CERRAR");
 								conectado.close();
 								console.log("[MASTER] NUMERO DE CONEXIONES " + server.connections.length);
-								if(!existe){
-									existe=true;
-								}
 							}
 						});
-						if(!existe){
-							confimysqul();
-							actualizar_modulo(menjson.dispositivo);
-							existe=false;
-						}
+						
+						confimysqul();
+						actualizar_modulo(menjson.dispositivo);
 						connection.nickname = menjson.dispositivo;
 					}
 					if(menjson.accion == "acceso"){
@@ -150,7 +142,10 @@ var server = ws.createServer(function (connection) {
 	})
 	
 })
-server.listen(8082)
+server.listen(8082);
+
+
+
 
 function broadcast(str, modulo) {
 	server.connections.forEach(function (connection) {
@@ -163,10 +158,12 @@ function broadcast(str, modulo) {
 	})
 }
 
+
+
 function confimysqul(){
 	connectionmysql = mysql.createConnection({
 		multipleStatements: true,
-		host: 'ceindetec15',
+		host: 'localhost',
 		user: 'admin',
 		password: 'Ceidentec1*.',
 		database: 'controlrfid',
@@ -200,6 +197,11 @@ function actualizar_modulo(modulo){
 				dataactu.total = resultado[0].length;
 				broadcast(encrypt.encrypt(JSON.stringify(dataactu)), modulo);
 				}else{
+				dataactu.dispositivo = "PC";
+				dataactu.accion = "UPD";
+				dataactu.data = "";
+				dataactu.total = 0;
+				broadcast(encrypt.encrypt(JSON.stringify(dataactu)), modulo);
 				console.log('[MASTER] Registro no encontrado');
 			}
 		}
